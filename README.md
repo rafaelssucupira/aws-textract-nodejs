@@ -1,20 +1,8 @@
-<!--
-title: 'AWS Simple HTTP Endpoint example in NodeJS'
-description: 'This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.'
-layout: Doc
-framework: v4
-platform: AWS
-language: nodeJS
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, Inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
+# Node HTTP API with aws.rekognition on AWS
 
-# Serverless Framework Node HTTP API on AWS
+This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda, API Gateway and API Rekognition using the Serverless Framework.
 
-This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.
-
-This template does not include any kind of persistence (database). For more advanced examples, check out the [serverless/examples repository](https://github.com/serverless/examples/) which includes Typescript, Mongo, DynamoDB and other examples.
+This template does not include any kind of persistence (database).
 
 ## Usage
 
@@ -38,21 +26,38 @@ functions:
   hello: serverless-http-api-dev-hello (1.6 kB)
 ```
 
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [HTTP API (API Gateway V2) event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api).
+_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer.
 
 ### Invocation
 
 After successful deployment, you can call the created application via HTTP:
 
 ```
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/
+curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com?imageURL=https://beecrowd.com/wp-content/uploads/2024/04/2022-07-26-Coisas-importantes-que-um-programador-deve-saber.jpg
 ```
 
 Which should result in response similar to:
 
 ```json
-{ "message": "Go Serverless v4! Your function executed successfully!" }
+  "98.91707611083984%. Computer",
+  "98.91707611083984%. Electronics",
+  "98.29694366455078%. Adult",
+  "98.29694366455078%. Male",
+  "98.29694366455078%. Man",
+  "98.29694366455078%. Person",
+  "97.9880142211914%. Pc",
+  "91.58375549316406%. Face",
+  "91.58375549316406%. Head",
+  "88.15668487548828%. Computer Hardware",
+  "88.15668487548828%. Computer Keyboard",
+  "88.15668487548828%. Hardware",
+  "86.43101501464844%. Bottle",
+  "86.43101501464844%. Shaker",
+  "82.78709411621094%. Advertisement",
+  "82.78709411621094%. Poster"
 ```
+> [!NOTE]
+> Only values ​​that have a confidence level greater than 80 will be returned.
 
 ### Local development
 
