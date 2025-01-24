@@ -1,8 +1,15 @@
 # Node HTTP API with aws.rekognition on AWS
 
-This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda, API Gateway and API Rekognition using the Serverless Framework.
+This model demonstrates how to make a simple HTTP API with Node.js running deep learning to read images and return them in json
 
 This template does not include any kind of persistence (database).
+
+### Technologies
+- Serveless Framework - to deploy the project on AWS
+- API Lambda - to execute the function that receives the image url
+- API Gateway - AWS REST API
+- API Rekognition - for image recognition
+- API Translate - for translating results coming from the Rekognition API
 
 ## Usage
 

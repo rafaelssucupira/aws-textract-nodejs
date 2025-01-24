@@ -13,7 +13,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-rekognition": "^3.731.1"
+    "@aws-sdk/client-rekognition": "^3.731.1",
+    "@aws-sdk/client-translate": "^3.734.0"
   },
   "devDependencies": {
     "serverless": "^4.4.19",
