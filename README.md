@@ -52,16 +52,20 @@ O que aprendi:
 # Instruções para execução 
 - Faça download do projeto e instale as dependencias
 ```
-git clone
+git clone https://github.com/rafaelssucupira/aws-rekognition-nodejs.git
 npm install
 ```
 - Crie um arquivo .env e defina um numero de whatsapp válido para se conectar 
 ```
 NUMBER=XXXXXXX
 ```
+- Configure o aws-cli, para posteriormente o Serveless Framework logar na sua conta aws
+```
+aws configure
+```
 - Em seguida execute o deploy na AWS através do Serveless Framework
 ```
-sls deploy
+npx sls deploy
 ```
 - Agora execute, ele enviará um codigo no terminal para o pareamento com whatsapp 
 ```

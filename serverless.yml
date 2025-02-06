@@ -24,15 +24,6 @@ provider:
           Action:
             - dynamodb:PutItem
           Resource: "*"   
-
-# functions:
-#   img-analysis:
-#     handler: src/index.main
-#     events:
-#       - httpApi:
-#           path: /analyse
-#           method: get
-
 resources:
   Resources:
     boxzapTable: 

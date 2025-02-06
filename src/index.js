@@ -9,13 +9,16 @@ const client = await create({
 client.onMessage( async (msg) => 
 {
     if(msg.type === "image") {
-        const id        = msg.id;
+        const id                = msg.id;
         const resultBase64    = await client.downloadMedia(id)
-        await Main(resultBase64)
+        console.log("resultBase64", resultBase64)
+        await Main(Buffer.from(resultBase64, "base64"))
+
+        await client.sendText(msg.from, "Obrigado pela preferência!");
     }
-        else {
+    else {
         await client.sendText(msg.from, "Envie seu comprovante!");
-        }   
+    }   
 
 })
 
