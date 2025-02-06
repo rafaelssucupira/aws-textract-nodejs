@@ -1,56 +1,45 @@
-const { describe, expect } = require("@jest/globals")
-const requestMock = require("./../mocks/requestMock.json")
-const requestMockInvalidUrl = require("./../mocks/requestMockInvalidUrl.json")
-const { main } = require("./../../src/index")
-
-const time = 15000
+import { describe, expect, it } from "vitest"
+import { readFile } from "fs/promises"
+import { normalize, join } from "path"
+import Patterns from "../../src/patterns.js"
+import { Main } from "../../src/factory.js"
 
 describe("Image analyser test suite", () => {
-    test("it should analyse succesfuly te image returning the results", async () => {
+    it("it should analyse succesfuly te image returning the results", async () => {
+        const path          = join( normalize(__dirname), "vouchers");
+        const base64        = await readFile(`${path}/nubank4.jpg`, { encoding : "base64" })
+        const base64Data    = base64.replace(/^data:image\/\w+;base64,/, "");
+        const buffer        = Buffer.from(base64Data, 'base64')
 
-        const response = [
-          '98.91707611083984%. Computador',
-          '98.91707611083984%. Eletrónica',
-          '98.29694366455078%. Adulto',
-          '98.29694366455078%. Masculino',
-          '98.29694366455078%. Homem',
-          '98.29694366455078%. Pessoa',
-          '97.9880142211914%. Pc',
-          '91.58375549316406%. Cara',
-          '91.58375549316406%. Cabeça',
-          '88.15668487548828%. Hardware de computador',
-          '88.15668487548828%. Teclado de computador',
-          '88.15668487548828%. Hardware',
-          '86.43101501464844%. Garrafa',
-          '86.43101501464844%. Shaker',
-          '82.78709411621094%. Publicidade',
-          '82.78709411621094%. Cartaz',
-        ]
+        const result    = await Main( buffer );
+        console.log(result);
+        expect(result.statusCode).toStrictEqual(200);
+    })
+
+    it("should resolve pattern Nubank", async () => {
+        const base      = join( normalize(__dirname), "..", "mocks");
+        const file      = await readFile(`${base}/textsNubank.txt`, { encoding : "utf-8" })
+        const result    = Patterns.getNubank( JSON.parse(file).join("\n") );
         
-        const expected = {
-            statusCode : 200,
-            body : response.join("\n")
-        }
-       const result = await main ( requestMock );
-    //    console.log("result", result);
-       expect(result).toStrictEqual( expected ) 
-
-    }, time)
-    test("given an empty queryString it should return status code 400", async () => {
-
-        const expected = {
-            statusCode : 400,
-            body : "image as empty!"
-        }
-       const result = await main ( requestMockInvalidUrl );
-       expect(result).toStrictEqual( expected ) ;
+        expect(result.datetime).toMatch(/(?<data>[0-9]+\s[JANFEVMARABRMAIJUNJULAGOSETOUTNOVDEZ]+\s\d{4}).+(?<hours>\d{2}\:\d{2}\:\d{2})/);
+        expect(result.value).toMatch(/(?<valor>R\$\s\d{1,5},\d{2})/);
+        expect(result.destination).toMatch(/[A-Z]/);
+        expect(result.origin).toMatch(/[A-Z]/);
+    
     })
-    test("given an invalid ImageURL it should return status 500", async () => {
-        const expected = {
-            statusCode : 500,
-            body : "Internal server error!"
-        }
-       const result = await main ();
-       expect(result).toStrictEqual( expected ) ;
+
+    it("should resolve pattern Banco do Brasil", async () => {
+        const base      = join( normalize(__dirname), "..", "mocks");
+        const file      = await readFile(`${base}/textsBancoDoBrasil.txt`, { encoding : "utf-8" })
+        const result    = Patterns.getBB( JSON.parse(file).join("\n") );
+        
+        expect(result.datetime).toMatch(/(?<data>)\d{2}\/\d{2}\/\d{4}\s\-\s(?<hours>\d{2}\:\d{2}\:\d{2})/);
+        expect(result.value).toMatch(/R\$\d{1,5},\d{2}/);
+        expect(result.destination).toMatch(/[A-Z]/);
+        expect(result.origin).toMatch(/[A-Z]/);
+
     })
+
+   
+    
 })

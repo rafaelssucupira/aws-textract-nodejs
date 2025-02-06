@@ -1,97 +1,110 @@
-const { DetectLabelsCommand } = require("@aws-sdk/client-rekognition");
-const { TranslateTextCommand  } = require("@aws-sdk/client-translate");
+import { DetectTextCommand } from"@aws-sdk/client-rekognition"
+import { PutItemCommand } from "@aws-sdk/client-dynamodb"
+import { PutObjectCommand } from"@aws-sdk/client-s3"
+import { writeFile } from"fs/promises"
+import { randomUUID } from"node:crypto"
+import Patterns from"./patterns.js"
+import { validate } from "./validator.js"
 
-module.exports = class Handler {
-    constructor( { rekoSvc, translateSvc } ) 
+
+export default class Handler {
+    constructor( { rekoSvc, s3Svc, dynamoSvc } ) 
         {
-            this.rekoSvc = rekoSvc
-            this.translateSvc = translateSvc
+            this.rekoSvc    = rekoSvc
+            this.s3Svc      = s3Svc
+            this.dynamoSvc  = dynamoSvc
         }
 
-    async getImage(url) 
+    async saveImage(buffer) 
         {
-            const get = await fetch(url)
-            const result = await get.arrayBuffer()
-            return Buffer.from(result, "base64");
+            const id            = randomUUID();
+            const result = await this.s3Svc.send( new PutObjectCommand ({
+                Bucket : "boxzap",
+                Body   : buffer,
+                Key    : `${id}.jpg` // caminho do arquivo dentro do bucket
+            }))
+
+            return {
+                stsS3 : result.$metadata.httpStatusCode,
+                uuid : id,
+                imgBuffer : buffer 
+            }
+
         }
 
-    async detectImgLabels(imgBuffer) {
-        
-        try {
-            const data = await this.rekoSvc.send(new DetectLabelsCommand({
+    async saveDb(data) {
+        const valid = validate(data)
+        if (!valid) throw validate.errors
+
+        const result = await this.dynamoSvc.send(new PutItemCommand({
+            TableName : "box",
+            Item : {
+                "box_id" : {
+                    "S" : data.uuid
+                },
+                "box_data" : {
+                    "S" : data.datetime
+                },
+                "box_value" : {
+                    "S" : data.value
+                },
+                "box_origin" : {
+                    "S" : data.origin
+                },
+                "box_destination" : {
+                    "S" : data.destination
+                }
+            }
+        }) )
+
+        return result.$metadata.httpStatusCode 
+    
+    }       
+
+    normalizeResult(TextDetections) 
+        {
+            return TextDetections
+                        .filter( data => data.Type === "LINE")
+                        .map( data => data.DetectedText )
+        }
+
+    async textDetect(buffer) 
+        {
+            const { stsS3, uuid, imgBuffer } = await this.saveImage(buffer)
+            if( stsS3 !== 200 ) throw "Não foi possivel salvar imagem no s3.";
+                
+            const { TextDetections }  = await this.rekoSvc.send(new DetectTextCommand({
+                WordFilter : {
+                    MinConfidence : 95
+                },
                 Image : {
                     Bytes : imgBuffer
                 }
-            }));
-            return data;
-        
-          } catch (error) {
-            console.log(error)
-          } 
-    }
+            }))
 
-    async translateTxt(txt) {
-        
-        // const input = { // TranslateTextRequest
-        //     Text: "STRING_VALUE", // required
-        //     TerminologyNames: [ // ResourceNameList
-        //       "STRING_VALUE",
-        //     ],
-        //     SourceLanguageCode: "STRING_VALUE", // required
-        //     TargetLanguageCode: "STRING_VALUE", // required
-        //     Settings: { // TranslationSettings
-        //       Formality: "FORMAL" || "INFORMAL",
-        //       Profanity: "MASK",
-        //       Brevity: "ON",
-        //     },
-        //   };
+            const rekoResult = this.normalizeResult(TextDetections);
+            // await writeFile("textDetectionsBB.txt", JSON.stringify(rekoResult, null, 2))
+            const pattern = new Map([
+                [ "nu", (rekoResult) => Patterns.getNubank(rekoResult) ], 
+                [ "SISBB - SISTEMA DE INFORMACOES BANCO DO BRASIL", (rekoResult) => Patterns.getBB(rekoResult) ], 
+            ]);
+            const resultPattern = pattern.get(rekoResult[0]) (rekoResult.join("\n"));
+            const resultDb      = await this.saveDb({uuid, ...resultPattern});
+            if(resultDb !== 200) throw "Não foi possivel salvar dados no dynamoDB."
 
-        try {
-            const data = await this.translateSvc.send(new TranslateTextCommand({
-                    Text: txt, // required
-                    SourceLanguageCode: "en", // required
-                    TargetLanguageCode: "pt-PT", // required
-                    Settings: { // TranslationSettings required
-                        Formality: "INFORMAL",
-                        Brevity: "ON",
-                    }
-                })
-            );
-            return data;
-        
-          } catch (error) {
-            console.log(error)
-          } 
-    }
-
-    async main(event) {
-        
-        try {
-            const { imageUrl } = event.queryStringParameters
-            if(!imageUrl) {
-                return {
-                    statusCode : 400,
-                    body : "image as empty!"
-                }
-            }
-            const buffer        = await this.getImage(imageUrl)
-            const resultLabel   = await this.detectImgLabels(buffer)
-          
-            
-            const results = resultLabel.Labels
-                            .filter( data => data.Confidence > 80)
-                            .map( data => `${data.Confidence}%. ${data.Name}` )
-
-            const translateText     = await this.translateTxt(results.join("\n"))
-            
             return {
-                statusCode  : 200,
-                body        : translateText.TranslatedText
+                statusCode : resultDb,
+                result : resultPattern
             }
+        }     
 
+    async main(buffer) {
+        
+        try {
+            return this.textDetect(buffer)
         }
         catch(e) {
-            
+            console.log(e);
             return {
                 statusCode : 500,
                 body : "Internal server error!"

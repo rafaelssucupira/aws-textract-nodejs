@@ -14,17 +14,46 @@ provider:
       statements:
         - Effect: Allow
           Action:
-            - rekognition:DetectLabels
+            - rekognition:DetectText
           Resource: "*"  
         - Effect: Allow
           Action:
-            - translate:TranslateText
+            - s3:PutObject
+          Resource: "*"   
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
           Resource: "*"   
 
-functions:
-  img-analysis:
-    handler: src/index.main
-    events:
-      - httpApi:
-          path: /analyse
-          method: get
+# functions:
+#   img-analysis:
+#     handler: src/index.main
+#     events:
+#       - httpApi:
+#           path: /analyse
+#           method: get
+
+resources:
+  Resources:
+    boxzapTable: 
+      Type: AWS::DynamoDB::Table
+      Properties : 
+        TableName : box
+        AttributeDefinitions : 
+          - AttributeName: box_id
+            AttributeType: S
+          - AttributeName: box_data
+            AttributeType: S
+        KeySchema : 
+          - AttributeName: box_id
+            KeyType : HASH  
+          - AttributeName: box_data
+            KeyType : RANGE  
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1    
+    boxzapBucket: 
+      Type : AWS::S3::Bucket  
+      Properties:
+        BucketName: boxzap
+
