@@ -10,9 +10,8 @@ client.onMessage( async (msg) =>
 {
     if(msg.type === "image") {
         const id                = msg.id;
-        const resultBase64    = await client.downloadMedia(id)
-        console.log("resultBase64", resultBase64)
-        await Main(Buffer.from(resultBase64, "base64"))
+        const base64    = await client.downloadMedia(id)
+        await Main(Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ""), "base64"))
 
         await client.sendText(msg.from, "Obrigado pela preferência!");
     }
