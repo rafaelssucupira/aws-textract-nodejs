@@ -58,7 +58,7 @@ export default class Handler {
                 [ "ouvidoria@nubank.com.br (Atendimento das 8h às", (rekoResult) => Patterns.getNubank(rekoResult) ], 
                 [ "SISBB - SISTEMA DE INFORMACOES BANCO DO BRASIL", (rekoResult) => Patterns.getBB(rekoResult) ], 
                 [ "0800 688 4365", (rekoResult) => Patterns.getMercadoPago(rekoResult)  ],
-                [ "bradescoiou", (rekoResult) => Patterns.getBradesco(rekoResult) ]
+                [ "bradesco", (rekoResult) => Patterns.getBradesco(rekoResult) ]
             ]);
 
             let resultPattern ;
@@ -88,7 +88,7 @@ export default class Handler {
             return await this.textDetect(buffer)
         }
         catch(e) {
-            console.log(e);
+            console.log(e.message);
             return {
                 statusCode : 500,
                 body : "Internal server error!"

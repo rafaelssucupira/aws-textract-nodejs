@@ -1,5 +1,6 @@
 import { Main } from "./factory.js"
 import { create } from '@wppconnect-team/wppconnect';
+import { writeFile } from "node:fs/promises"
 
 const client = await create({
     phoneNumber: process.env.NUMBER,
@@ -8,10 +9,13 @@ const client = await create({
 
 client.onMessage( async (msg) => 
 {
-    if(msg.type === "image") {
-        const id                = msg.id;
-        const base64    = await client.downloadMedia(id)
-        await Main(Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ""), "base64"))
+    await writeFile("msgInterface.txt", JSON.stringify(msg, null, 2));
+
+    if(msg.type === "image" || (msg.type === "document" && msg.mimetype === "application/pdf") ) {
+        const id     = msg.id;
+        const base64 = await client.downloadMedia(id)
+        const result = await Main( Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ""), "base64") )
+        console.log(result)
 
         await client.sendText(msg.from, "Obrigado pela preferência!");
     }
@@ -20,14 +24,3 @@ client.onMessage( async (msg) =>
     }   
 
 })
-
-//SER FEITO NO INDEX.JS
-// const base      = join( normalize(__dirname), "..", "integration", "vouchers");
-// const boleto    = await readFile(`${base}/mercadopago.pdf`);
-// const convert   = fromBuffer(boleto, {
-//     width: 250,
-//     height: 600
-// });
-// const { buffer } = await convert(1, { responseType: "buffer" })
-// const result = await Main( buffer )
-
