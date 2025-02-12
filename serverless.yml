@@ -12,14 +12,10 @@ provider:
   iam:
     role:
       statements:
-        - Effect: Allow
-          Action:
-            - rekognition:DetectText
-          Resource: "*"  
-        - Effect: Allow
-          Action:
-            - s3:PutObject
-          Resource: "*"   
+        # - Effect: Allow
+        #   Action:
+        #     - rekognition:DetectText
+        #   Resource: "*"  
         - Effect: Allow
           Action:
             - dynamodb:PutItem
@@ -43,8 +39,5 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1    
-    boxzapBucket: 
-      Type : AWS::S3::Bucket  
-      Properties:
-        BucketName: boxzap
+
 

@@ -1,95 +1,79 @@
-import { DetectTextCommand } from"@aws-sdk/client-rekognition"
+import { DetectDocumentTextCommand  } from "@aws-sdk/client-textract";
 import { PutItemCommand } from "@aws-sdk/client-dynamodb"
-import { PutObjectCommand } from"@aws-sdk/client-s3"
-import { writeFile } from"fs/promises"
+import { writeFile } from "fs/promises"
 import { randomUUID } from"node:crypto"
 import Patterns from"./patterns.js"
 import { validate } from "./validator.js"
 
 
 export default class Handler {
-    constructor( { rekoSvc, s3Svc, dynamoSvc } ) 
+    constructor( { s3Svc, dynamoSvc, textSvc } ) 
         {
-            this.rekoSvc    = rekoSvc
             this.s3Svc      = s3Svc
             this.dynamoSvc  = dynamoSvc
-        }
-
-    async saveImage(buffer) 
-        {
-            const id            = randomUUID();
-            const result = await this.s3Svc.send( new PutObjectCommand ({
-                Bucket : "boxzap",
-                Body   : buffer,
-                Key    : `${id}.jpg` // caminho do arquivo dentro do bucket
-            }))
-
-            return {
-                stsS3 : result.$metadata.httpStatusCode,
-                uuid : id,
-                imgBuffer : buffer 
-            }
-
+            this.textSvc  = textSvc
         }
 
     async saveDb(data) {
         const valid = validate(data)
         if (!valid) throw validate.errors
-
+        
         const result = await this.dynamoSvc.send(new PutItemCommand({
             TableName : "box",
             Item : {
-                "box_id" : {
-                    "S" : data.uuid
-                },
-                "box_data" : {
-                    "S" : data.datetime
-                },
-                "box_value" : {
-                    "S" : data.value
-                },
-                "box_origin" : {
-                    "S" : data.origin
-                },
-                "box_destination" : {
-                    "S" : data.destination
-                }
+                "box_id" : { "S" : data.id },
+                "box_data" : { "S" : data.datetime },
+                "box_valor" : { "S" : data.value },
+                "box_de" : { "S" : data.of },
+                "box_para" : { "S" : data.to },
+                "box_pix" : { "S" : data.keypix },
+                "box_text" : { "S" : data.text }
             }
         }) )
-
+        
         return result.$metadata.httpStatusCode 
     
     }       
 
-    normalizeResult(TextDetections) 
+    normalizeResult(Blocks) 
         {
-            return TextDetections
-                        .filter( data => data.Type === "LINE")
-                        .map( data => data.DetectedText )
+            return Blocks
+                        .filter( data => data.BlockType === "LINE" && data.Confidence > 90)
+                        .map( data => data.Text )
         }
 
     async textDetect(buffer) 
         {
-            const { stsS3, uuid, imgBuffer } = await this.saveImage(buffer)
-            if( stsS3 !== 200 ) throw "Não foi possivel salvar imagem no s3.";
                 
-            const { TextDetections }  = await this.rekoSvc.send(new DetectTextCommand({
-                WordFilter : {
-                    MinConfidence : 95
-                },
-                Image : {
-                    Bytes : imgBuffer
+            const { Blocks }  = await this.textSvc.send(new DetectDocumentTextCommand({
+                Document : {
+                    Bytes : buffer
                 }
             }))
 
-            const rekoResult = this.normalizeResult(TextDetections);
-            // await writeFile("textDetectionsBB.txt", JSON.stringify(rekoResult, null, 2))
+            const rekoResult = this.normalizeResult(Blocks);
+            const rekoResultFormatted = rekoResult.join("\n")
+            // await writeFile("textDetections.txt", JSON.stringify(rekoResult, null, 2))
             const pattern = new Map([
-                [ "nu", (rekoResult) => Patterns.getNubank(rekoResult) ], 
+                [ "ouvidoria@nubank.com.br (Atendimento das 8h às", (rekoResult) => Patterns.getNubank(rekoResult) ], 
                 [ "SISBB - SISTEMA DE INFORMACOES BANCO DO BRASIL", (rekoResult) => Patterns.getBB(rekoResult) ], 
+                [ "0800 688 4365", (rekoResult) => Patterns.getMercadoPago(rekoResult)  ],
+                [ "bradescoiou", (rekoResult) => Patterns.getBradesco(rekoResult) ]
             ]);
-            const resultPattern = pattern.get(rekoResult[0]) (rekoResult.join("\n"));
-            const resultDb      = await this.saveDb({uuid, ...resultPattern});
+
+            let resultPattern ;
+            for(const data of pattern) {
+                if(rekoResult.includes( data[0] ) ) {
+                    resultPattern = pattern.get(data[0]) (rekoResultFormatted);
+                    break;
+                }
+            }
+
+            const resultDb      = await this.saveDb( { 
+                id : randomUUID(), 
+                text : rekoResultFormatted,
+                ...resultPattern 
+            } );
             if(resultDb !== 200) throw "Não foi possivel salvar dados no dynamoDB."
 
             return {
@@ -101,7 +85,7 @@ export default class Handler {
     async main(buffer) {
         
         try {
-            return this.textDetect(buffer)
+            return await this.textDetect(buffer)
         }
         catch(e) {
             console.log(e);

@@ -3,13 +3,14 @@ const ajv = new Ajv()
 const schema = {
   type: "object",
   properties: {
-    datetime: { type: "string", nullable : false },
-    value: { type: "string", nullable : false },
-    destination: { type: "string", nullable : false },
-    origin: { type: "string", nullable : false },
-    
+    datetime  : { type: "string", nullable : false },
+    value     : { type: "string", nullable : false },
+    to        : { type: "string", nullable : false },
+    of        : { type: "string", nullable : false },
+    keypix    : { type: "string", nullable : false },
+    text      : { type: "string", nullable : false }
   },
-  required: ["datetime", "value", "destination", "origin"],
+  required: ["datetime", "value", "to", "of", "keypix", "text"],
   
 }
 
