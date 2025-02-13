@@ -38,7 +38,7 @@ export default class Handler {
     normalizeResult(Blocks) 
         {
             return Blocks
-                        .filter( data => data.BlockType === "LINE" && data.Confidence > 90)
+                        .filter( data => data.BlockType === "LINE" && data.Confidence > 80)
                         .map( data => data.Text )
         }
 
@@ -55,7 +55,7 @@ export default class Handler {
             const rekoResultFormatted = rekoResult.join("\n")
             // await writeFile("textDetections.txt", JSON.stringify(rekoResult, null, 2))
             const pattern = new Map([
-                [ "ouvidoria@nubank.com.br (Atendimento das 8h às", (rekoResult) => Patterns.getNubank(rekoResult) ], 
+                [ "0800 887 0463", (rekoResult) => Patterns.getNubank(rekoResult) ], 
                 [ "SISBB - SISTEMA DE INFORMACOES BANCO DO BRASIL", (rekoResult) => Patterns.getBB(rekoResult) ], 
                 [ "0800 688 4365", (rekoResult) => Patterns.getMercadoPago(rekoResult)  ],
                 [ "bradesco", (rekoResult) => Patterns.getBradesco(rekoResult) ]
@@ -63,12 +63,11 @@ export default class Handler {
 
             let resultPattern ;
             for(const data of pattern) {
-                if(rekoResult.includes( data[0] ) ) {
+                if(rekoResultFormatted.includes( data[0] ) ) {
                     resultPattern = pattern.get(data[0]) (rekoResultFormatted);
                     break;
                 }
             }
-
             const resultDb      = await this.saveDb( { 
                 id : randomUUID(), 
                 text : rekoResultFormatted,
@@ -88,7 +87,7 @@ export default class Handler {
             return await this.textDetect(buffer)
         }
         catch(e) {
-            console.log(e.message);
+            console.log(e);
             return {
                 statusCode : 500,
                 body : "Internal server error!"

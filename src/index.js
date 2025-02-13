@@ -16,17 +16,17 @@ client.onMessage( async (msg) =>
         const base64 = await client.downloadMedia(id)
         const buffer = Buffer.from(base64.replace(/^data:image\/\w+;base64,|^data:application\/\w+;base64,/, ""), "base64")
         const {statusCode, result} = await Main( buffer )
-        let send = "";
-        if(statusCode === 200) {
-            send = `- *Data/Hora :* ${result.datetime}\n- *Valor :* ${result.value}\n- *De :* ${result.of}\n- *Para :* ${result.to}\n- *PIX :* ${result.keypix}\n`;
-        }
-        else {
-            send = "Internal server error!"
-        }
-        await client.sendText(msg.from, send);
+        const resp = statusCode === 200 ? `- *Data/Hora :* ${result.datetime}\n- *Valor :* ${result.value}\n- *De :* ${result.of}\n- *Para :* ${result.to}\n- *PIX :* ${result.keypix}\n` 
+                                        : "Internal server error!"
+        
+        await client.sendText(msg.from, resp);
     }
     else {
+        if(msg.type === "text" && msg.body.toLowerCase() === "caixa") {
+            await client.sendText(msg.from, "report");    
+        }
+
         await client.sendText(msg.from, "Envie seu comprovante!");
     }   
-
+    
 })

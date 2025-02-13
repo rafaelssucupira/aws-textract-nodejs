@@ -7,12 +7,12 @@ import { Main } from "../../src/factory.js"
 describe("Image analyser test suite", () => {
     it.only("it should analyse succesfuly te image returning the results", async () => {
         const path          = join( normalize(__dirname), "vouchers");
-        const base64        = await readFile(`${path}/bradesco.pdf`, { encoding : "base64" })
+        const base64        = await readFile(`${path}/mercadopago.pdf`, { encoding : "base64" })
         const base64Data    = base64.replace(/^data:image\/\w+;base64,/, "");
         const buffer        = Buffer.from(base64Data, 'base64')
 
         const result    = await Main( buffer );
-        console.log(result);
+        // console.log(result);
         expect(result.statusCode).toStrictEqual(200);
     })
 
