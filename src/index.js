@@ -19,12 +19,12 @@ client.onMessage( async (msg) =>
 
         let send = "";
         if(result.statusCode === 200) {
-            send = `- ID : ${data.id}\n
-                - Data/Hora : ${data.datetime}\n
-                - Valor : ${data.value}c
-                - De : ${data.of}\n
-                - Para : ${data.to}\n
-                - PIX : ${data.keypix}\n`;
+            send = `- ID : ${result.id}\n
+                - Data/Hora : ${result.datetime}\n
+                - Valor : ${result.value}c
+                - De : ${result.of}\n
+                - Para : ${result.to}\n
+                - PIX : ${result.keypix}\n`;
         }
         else {
             send = "Internal server error!"
