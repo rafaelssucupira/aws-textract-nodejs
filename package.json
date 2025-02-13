@@ -5,8 +5,7 @@
   "main": "handler.js",
   "type": "module",
   "scripts": {
-    "prod": "node --env-file=.env src/index.js",
-    "start" : "pm2 start npm --name 'rekoapp' -- prod",
+    "start": "node --env-file=.env src/index.js",
     "test": "npx vitest --coverage"
   },
   "keywords": [],

@@ -1,1 +1,1 @@
-pm2 start npm --name 'rekoapp' -- prod
+pm2 start npm --name 'rekoapp' -- start
