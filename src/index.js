@@ -18,8 +18,13 @@ client.onMessage( async (msg) =>
         const result = await Main( buffer )
         console.log(result)
         let send = "";
-        for(const data of Object.entries(result)) {
-            send += `- ${data}\n`;
+        if(result.statusCode === 200) {
+            for(const [key, data] of Object.entries(result.result)) {
+                send += `- ${key} : ${data}\n`;
+            }
+        }
+        else {
+            send = "Internal server error!"
         }
         await client.sendText(msg.from, send);
     }
