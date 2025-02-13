@@ -15,12 +15,10 @@ client.onMessage( async (msg) =>
         const id     = msg.id;
         const base64 = await client.downloadMedia(id)
         const buffer = Buffer.from(base64.replace(/^data:image\/\w+;base64,|^data:application\/\w+;base64,/, ""), "base64")
-        const result = await Main( buffer )
-        console.log(result);
+        const {statusCode, result} = await Main( buffer )
         let send = "";
-        if(result.statusCode === 200) {
-            send = `- ID : ${result.id}\n
-                - Data/Hora : ${result.datetime}\n
+        if(statusCode === 200) {
+            send = `- Data/Hora : ${result.datetime}\n
                 - Valor : ${result.value}c
                 - De : ${result.of}\n
                 - Para : ${result.to}\n
