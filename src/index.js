@@ -14,10 +14,14 @@ client.onMessage( async (msg) =>
     if(msg.type === "image" || (msg.type === "document" && msg.mimetype === "application/pdf") ) {
         const id     = msg.id;
         const base64 = await client.downloadMedia(id)
-        const result = await Main( Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ""), "base64") )
+        const buffer = Buffer.from(base64.replace(/^data:image\/\w+;base64,|^data:application\/\w+;base64,/, ""), "base64")
+        const result = await Main( buffer )
         console.log(result)
-
-        await client.sendText(msg.from, "Obrigado pela preferência!");
+        let send = "";
+        for(const data of Object.entries(result)) {
+            send += `- ${data}\n`;
+        }
+        await client.sendText(msg.from, send);
     }
     else {
         await client.sendText(msg.from, "Envie seu comprovante!");
