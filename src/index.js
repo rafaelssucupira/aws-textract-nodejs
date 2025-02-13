@@ -17,14 +17,6 @@ client.onMessage( async (msg) =>
         const buffer = Buffer.from(base64.replace(/^data:image\/\w+;base64,|^data:application\/\w+;base64,/, ""), "base64")
         const result = await Main( buffer )
 
-// "box_id" : { "S" : data.id },
-//                 "box_data" : { "S" : data.datetime },
-//                 "box_valor" : { "S" : data.value },
-//                 "box_de" : { "S" : data.of },
-//                 "box_para" : { "S" : data.to },
-//                 "box_pix" : { "S" : data.keypix },
-//                 "box_text" : { "S" : data.text }
-//         console.log(result)
         let send = "";
         if(result.statusCode === 200) {
             send = `- ID : ${data.id}\n
