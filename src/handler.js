@@ -104,8 +104,8 @@ export default class Handler {
                 }
             }
             const validOwner = `${resultPattern.of.toLowerCase()}@${resultPattern.to.toLowerCase()}`
-            if(validOwner.includes(process.env.DESTINATARY.toLowerCase()) === false) {
-                throw `Aceitamos pix somente de : ${process.env.DESTINATARY}`
+            if(validOwner.includes(process.env.NAME.toLowerCase()) === false) {
+                throw `Aceitamos pix somente de : ${process.env.NAME}`
             }
 
             await this.saveItems( { 

@@ -5,8 +5,8 @@
   "main": "handler.js",
   "type": "module",
   "scripts": {
-    "start": "DESTINATARY='Rafael Sucupira' node -r dotenv/config src/index.js",
-    "test": "DESTINATARY='Rafael Sucupira' npx vitest --coverage"
+    "start": "NAME='Rafael Sucupira' node -r dotenv/config src/index.js",
+    "test": "NAME='Rafael Sucupira' npx vitest --coverage"
   },
   "keywords": [],
   "author": "",
