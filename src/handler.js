@@ -1,5 +1,5 @@
 import { DetectDocumentTextCommand  } from "@aws-sdk/client-textract";
-import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
+import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 import Patterns from"./patterns.js"
 import { validate } from "./validator.js"
 
@@ -15,18 +15,12 @@ export default class Handler {
         {
             return dataValues.reduce( (acc, cur) => {
 
-                const field = cur.box_de === "Rafael Sucupira Marques" ? "CREDITO" : cur.box_para === "Rafael Sucupira Marques" ? "DEBITO" : "DEBITO"
+                const field = cur.box_de === "Rafael Sucupira Marques" ? "DEBITO" : "CREDITO"
                 
                 const valor = parseFloat(cur.box_valor.replace("R$", "").replace(".", "").replace(",", "."));
                 acc[ field ] += valor;
 
                 return acc;
-                // if (cur.box_de === "Rafael Sucupira Marques") {
-                // }
-                // else if (cur.box_para === "Rafael Sucupira Marques") {
-                //     const valor = parseFloat(cur.box_valor.replace("R$", "").replace(".", "").replace(",", "."));
-                //     acc["DEBITO"] += valor;
-                // }
             }, { "CREDITO": 0, "DEBITO": 0 });
         }  
     
@@ -42,7 +36,7 @@ export default class Handler {
             const valid = validate(data)
             if (!valid) throw validate.errors
             
-            const result = await this.dynamoSvc.send(new PutItemCommand({
+            const result = await this.dynamoSvc.send(new PutCommand({
                 TableName : "boxzap",
                 Item : {
                     "box_id"    : data.id,
@@ -55,28 +49,31 @@ export default class Handler {
                 }
             }) )
             
-            return result.$metadata.httpStatusCode 
+            if(result.$metadata.httpStatusCode !== 200) {
+                throw "Não foi possivel salvar dados no dynamoDB."
+            } 
 
         }    
 
     async readItems( { number, start, end } ) 
         {
+
             const result = await this.dynamoSvc.send(new QueryCommand({
                 TableName : "boxzap",
                 ExpressionAttributeValues :  {
-                    ":id"       : number,
-                    ":start"    : start,
-                    ":end"      : end  
+                    ":id": number,
+                    ":start": start,
+                    ":end": end 
                 },
                 ProjectionExpression : "box_valor,box_data,box_de,box_para",
                 KeyConditionExpression : "box_id = :id AND box_data BETWEEN :start AND :end",
             }) )
 
-            console.log("resultRead", JSON.stringify(result,null,2));
+            // console.log("resultRead", JSON.stringify(result,null,2));
             if(result.$metadata.httpStatusCode !== 200) throw "Não foi possivel salvar dados no dynamoDB."
             return {
                 statusCode : result.$metadata.httpStatusCode ,
-                result : this.debitOrCredit(result)
+                result : this.debitOrCredit(result.Items)
             }
 
         }        
@@ -92,7 +89,6 @@ export default class Handler {
 
             const rekoResult = this.normalizeResult(Blocks);
             const rekoResultFormatted = rekoResult.join("\n")
-            // await writeFile("textDetections.txt", JSON.stringify(rekoResult, null, 2))
             const pattern = new Map([
                 [ "0800 887 0463",                                  (rekoResult) => Patterns.getNubank(rekoResult) ], 
                 [ "SISBB - SISTEMA DE INFORMACOES BANCO DO BRASIL", (rekoResult) => Patterns.getBB(rekoResult) ], 
@@ -107,15 +103,19 @@ export default class Handler {
                     break;
                 }
             }
-            const resultDb      = await this.saveItems( { 
+            const validOwner = `${resultPattern.of.toLowerCase()}@${resultPattern.to.toLowerCase()}`
+            if(validOwner.includes(process.env.DESTINATARY.toLowerCase()) === false) {
+                throw `Aceitamos pix somente de : ${process.env.DESTINATARY}`
+            }
+
+            await this.saveItems( { 
                 id : number, 
                 text : rekoResultFormatted,
                 ...resultPattern 
             } );
-            if(resultDb !== 200) throw "Não foi possivel salvar dados no dynamoDB."
-
+         
             return {
-                statusCode : resultDb,
+                statusCode : 200,
                 result : resultPattern
             }
         }  
@@ -137,7 +137,7 @@ export default class Handler {
                     console.log(e);
                     return {
                         statusCode : 500,
-                        body : "Internal server error!"
+                        result : e.message || "Internal server error!"
                     }
                 }
 

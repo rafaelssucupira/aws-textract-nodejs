@@ -17,9 +17,10 @@ client.onMessage( async (msg) =>
             const base64 = await client.downloadMedia(id)
             const {statusCode, result} = await Main( "create", { buffer : Utils.normalizeBase64(base64), number : msg.from.replace("@c.us", "") } )
             const resp = statusCode === 200 ? `- *Data/Hora :* ${result.datetime}\n- *Valor :* ${result.value}\n- *De :* ${result.of}\n- *Para :* ${result.to}\n- *PIX :* ${result.keypix}\n` 
-                                            : "Internal server error!"
+                                            : result
             
             await client.sendText(msg.from, resp);
+            return
         }
     else if(msg.type === "chat") 
         {
@@ -38,12 +39,13 @@ client.onMessage( async (msg) =>
 
 
                     const resp = statusCode === 200 ? `- * Crédito :* ${result.CREDITO}\n- *Débito :* ${result.DEBITO}\n- *Total :* ${(result.CREDITO-result.DEBITO)}` 
-                                                    : "Internal server error!"
+                                                    : result
                     await client.sendText(msg.from, resp);    
 
                 }
 
-           
+            return
+
         } 
         
         await client.sendText(msg.from, "Envie seu comprovante ou envie o comando *caixa@dd/mm/yyyy@dd/mm/yyyy* para obter relatório!");
