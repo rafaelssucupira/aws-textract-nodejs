@@ -24,7 +24,7 @@ O que aprendi:
 - [Contribua](#Contribua)
 
 # Features
-![Feature](./feature.png)
+![Feature](./markdown/feature.png)
 
 ### Passo 1: Recebimento do Comprovante PIX
 
@@ -56,7 +56,7 @@ caixa@yyyy@dd/mm/yyyy
 # Instruções para execução 
 - Faça download do projeto e instale as dependencias
 ```
-git clone https://github.com/rafaelssucupira/aws-textextract-nodejs.git
+git clone https://github.com/rafaelssucupira/aws-textract-nodejs.git
 npm install
 ```
 - Crie um arquivo `.env` na raiz do projeto e defina a variável de ambiente `NAME` com o nome que deve constar no comprovante PIX. Por exemplo:
