@@ -24,7 +24,7 @@ client.onMessage( async (msg) =>
     else if(msg.type === "chat") 
         {
             const txtLowerCase = msg.body.toLocaleLowerCase();
-            if(txtLowerCase.includes("caixa") === "true") 
+            if(txtLowerCase.includes("caixa") === true) 
                 {
                     const atCount = (msg.body.match(/@/g) || []).length;
                     const isDataValid = (msg.body.match(/(?<day>\d{2})\/?\-?(?<month>\d{2})\/?\-?(?<year>\d{4})/gm) || []).length
