@@ -29,7 +29,7 @@ O que aprendi:
 ### Passo 1: Recebimento do Comprovante PIX
 
 - O cliente envia o comprovante PIX para o WhatsApp do comerciante.
-- O aplicativo recebe a imagem do comprovante PIX e inicia o processo de análise.
+- O bot recebe a imagem do comprovante PIX e inicia o processo de análise.
 
 ### Passo 3: Detecção de Textos com AWS Textract
 
@@ -43,8 +43,15 @@ O que aprendi:
 
 ### Passo 5: Retorno de Mensagem de Sucesso
 
-- Após o armazenamento dos dados, o aplicativo retorna uma mensagem de sucesso para o usuário.
+- Após o armazenamento dos dados, o bot retorna uma mensagem de sucesso para o usuário.
 - Isso confirma que o comprovante PIX foi processado com sucesso e que os dados foram armazenados corretamente.
+
+### Passo 6: Relatório
+
+- Ao final do dia você pode enviar um comando para geração de um relatório com base no periodo que voce quiser. Por exemplo : 
+```
+caixa@yyyy@dd/mm/yyyy
+```
 
 # Instruções para execução 
 - Faça download do projeto e instale as dependencias
