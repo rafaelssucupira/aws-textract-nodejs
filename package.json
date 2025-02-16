@@ -5,7 +5,7 @@
   "main": "handler.js",
   "type": "module",
   "scripts": {
-    "start": "node --env-file=.env src/index.js",
+    "start": "node src/index.js",
     "test": "npx vitest --coverage"
   },
   "keywords": [],
@@ -14,8 +14,10 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.741.0",
     "@aws-sdk/client-textract": "^3.744.0",
+    "@aws-sdk/lib-dynamodb": "^3.744.0",
     "@wppconnect-team/wppconnect": "^1.35.2",
-    "ajv": "^8.17.1"
+    "ajv": "^8.17.1",
+    "date-fns": "^4.1.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^3.0.5",

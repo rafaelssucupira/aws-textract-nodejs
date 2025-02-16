@@ -1,10 +1,7 @@
 import { DetectDocumentTextCommand  } from "@aws-sdk/client-textract";
-import { PutItemCommand } from "@aws-sdk/client-dynamodb"
-import { writeFile } from "fs/promises"
-import { randomUUID } from"node:crypto"
+import { PutItemCommand, QueryCommand } from "@aws-sdk/client-dynamodb"
 import Patterns from"./patterns.js"
 import { validate } from "./validator.js"
-
 
 export default class Handler {
     constructor( { s3Svc, dynamoSvc, textSvc } ) 
@@ -14,35 +11,77 @@ export default class Handler {
             this.textSvc  = textSvc
         }
 
-    async saveDb(data) {
-        const valid = validate(data)
-        if (!valid) throw validate.errors
-        
-        const result = await this.dynamoSvc.send(new PutItemCommand({
-            TableName : "box",
-            Item : {
-                "box_id" : { "S" : data.id },
-                "box_data" : { "S" : data.datetime },
-                "box_valor" : { "S" : data.value },
-                "box_de" : { "S" : data.of },
-                "box_para" : { "S" : data.to },
-                "box_pix" : { "S" : data.keypix },
-                "box_text" : { "S" : data.text }
-            }
-        }) )
-        
-        return result.$metadata.httpStatusCode 
-    
-    }       
+    debitOrCredit(dataValues)  
+        {
+            return dataValues.reduce( (acc, cur) => {
 
+                const field = cur.box_de === "Rafael Sucupira Marques" ? "CREDITO" : cur.box_para === "Rafael Sucupira Marques" ? "DEBITO" : "DEBITO"
+                
+                const valor = parseFloat(cur.box_valor.replace("R$", "").replace(".", "").replace(",", "."));
+                acc[ field ] += valor;
+
+                return acc;
+                // if (cur.box_de === "Rafael Sucupira Marques") {
+                // }
+                // else if (cur.box_para === "Rafael Sucupira Marques") {
+                //     const valor = parseFloat(cur.box_valor.replace("R$", "").replace(".", "").replace(",", "."));
+                //     acc["DEBITO"] += valor;
+                // }
+            }, { "CREDITO": 0, "DEBITO": 0 });
+        }  
+    
     normalizeResult(Blocks) 
         {
             return Blocks
-                        .filter( data => data.BlockType === "LINE" && data.Confidence > 80)
-                        .map( data => data.Text )
-        }
+                    .filter( data => data.BlockType === "LINE" && data.Confidence > 90)
+                    .map( data => data.Text )
+        }    
 
-    async textDetect(buffer) 
+    async saveItems(data) 
+        {
+            const valid = validate(data)
+            if (!valid) throw validate.errors
+            
+            const result = await this.dynamoSvc.send(new PutItemCommand({
+                TableName : "boxzap",
+                Item : {
+                    "box_id"    : data.id,
+                    "box_data"  : data.datetime,
+                    "box_valor" : data.value,
+                    "box_de"    : data.of,
+                    "box_para"  : data.to,
+                    "box_pix"   : data.keypix,
+                    "box_text"  : data.text 
+                }
+            }) )
+            
+            return result.$metadata.httpStatusCode 
+
+        }    
+
+    async readItems( { number, start, end } ) 
+        {
+            const result = await this.dynamoSvc.send(new QueryCommand({
+                TableName : "boxzap",
+                ExpressionAttributeValues :  {
+                    ":id"       : number,
+                    ":start"    : start,
+                    ":end"      : end  
+                },
+                ProjectionExpression : "box_valor,box_data,box_de,box_para",
+                KeyConditionExpression : "box_id = :id AND box_data BETWEEN :start AND :end",
+            }) )
+
+            console.log("resultRead", JSON.stringify(result,null,2));
+            if(result.$metadata.httpStatusCode !== 200) throw "Não foi possivel salvar dados no dynamoDB."
+            return {
+                statusCode : result.$metadata.httpStatusCode ,
+                result : this.debitOrCredit(result)
+            }
+
+        }        
+
+    async textDetect({ number, buffer } ) 
         {
                 
             const { Blocks }  = await this.textSvc.send(new DetectDocumentTextCommand({
@@ -55,10 +94,10 @@ export default class Handler {
             const rekoResultFormatted = rekoResult.join("\n")
             // await writeFile("textDetections.txt", JSON.stringify(rekoResult, null, 2))
             const pattern = new Map([
-                [ "0800 887 0463", (rekoResult) => Patterns.getNubank(rekoResult) ], 
+                [ "0800 887 0463",                                  (rekoResult) => Patterns.getNubank(rekoResult) ], 
                 [ "SISBB - SISTEMA DE INFORMACOES BANCO DO BRASIL", (rekoResult) => Patterns.getBB(rekoResult) ], 
-                [ "0800 688 4365", (rekoResult) => Patterns.getMercadoPago(rekoResult)  ],
-                [ "bradesco", (rekoResult) => Patterns.getBradesco(rekoResult) ]
+                [ "0800 688 4365",                                  (rekoResult) => Patterns.getMercadoPago(rekoResult) ],
+                [ "bradesco",                                       (rekoResult) => Patterns.getBradesco(rekoResult) ]
             ]);
 
             let resultPattern ;
@@ -68,8 +107,8 @@ export default class Handler {
                     break;
                 }
             }
-            const resultDb      = await this.saveDb( { 
-                id : randomUUID(), 
+            const resultDb      = await this.saveItems( { 
+                id : number, 
                 text : rekoResultFormatted,
                 ...resultPattern 
             } );
@@ -79,21 +118,29 @@ export default class Handler {
                 statusCode : resultDb,
                 result : resultPattern
             }
-        }     
+        }  
 
-    async main(buffer) {
-        
-        try {
-            return await this.textDetect(buffer)
-        }
-        catch(e) {
-            console.log(e);
-            return {
-                statusCode : 500,
-                body : "Internal server error!"
-            }
-        }
+    // params = buffer || paramsQueryRead
+    async main(opt = "read", params = "") 
+        {    
+            try 
+                {
+                    const opts = new Map([
+                        ["create",  (params) => this.textDetect(params) ],
+                        ["read",    (params) => this.readItems(params) ]
+                    ])
+                    const result = await opts.get(opt)(params)
+                    return result
+                }
+            catch(e) 
+                {
+                    console.log(e);
+                    return {
+                        statusCode : 500,
+                        body : "Internal server error!"
+                    }
+                }
 
-    }
+        }
 
 }

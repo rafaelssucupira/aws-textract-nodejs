@@ -9,13 +9,11 @@ provider:
   name: aws
   runtime: nodejs20.x
   region: us-east-1
+  environment:
+     TableName: boxzap
   iam:
     role:
       statements:
-        # - Effect: Allow
-        #   Action:
-        #     - rekognition:DetectText
-        #   Resource: "*"  
         - Effect: Allow
           Action:
             - dynamodb:PutItem
@@ -25,7 +23,7 @@ resources:
     boxzapTable: 
       Type: AWS::DynamoDB::Table
       Properties : 
-        TableName : box
+        TableName : ${self:provider.environment.TableName}
         AttributeDefinitions : 
           - AttributeName: box_id
             AttributeType: S
@@ -38,6 +36,16 @@ resources:
             KeyType : RANGE  
         ProvisionedThroughput:
           ReadCapacityUnits: 1
-          WriteCapacityUnits: 1    
+          WriteCapacityUnits: 1   
+        GlobalSecondaryIndexes:
+          - IndexName: box_data-index
+            KeySchema:
+              - AttributeName: box_data
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1 
 
 
