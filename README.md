@@ -24,7 +24,7 @@ O que aprendi:
 - [Contribua](#Contribua)
 
 # Features
-![Feature](./markdown/feature.png)
+![Feature](./__markdown__/feature.png)
 
 ### Passo 1: Recebimento do Comprovante PIX
 
