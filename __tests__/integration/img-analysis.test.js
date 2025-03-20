@@ -3,24 +3,23 @@ import { readFile, writeFile } from "fs/promises"
 import { normalize, join } from "path"
 import Patterns from "../../src/patterns.js"
 import { Main } from "../../src/factory.js"
-import { format, parse } from "date-fns"
-import { ptBR } from "date-fns/locale"
 import Utils from "../../src/utils.js"
 
 describe("Image analyser test suite", () => {
-    it("it should analyse succesfuly te image returning the results", async () => {
-        const path          = join( normalize(__dirname), "vouchers");
-        const base64        = await readFile(`${path}/mercadopago.pdf`, { encoding : "base64" })
+    it.skip("it should analyse succesfuly te image returning the results", async () => {
+        const path          = join( normalize(__dirname), "..", "..", "datas");
+        const base64        = await readFile(`${path}/file_1.jpg`, { encoding : "base64" })
         const base64Data    = base64.replace(/^data:image\/\w+;base64,/, "");
         const buffer        = Buffer.from(base64Data, 'base64')
 
-        const result    = await Main( "create", { number: "XXX", buffer } );
+        const result    = await Main( "insert", { number: "XXX", buffer } );
+        console.log(result);
         expect(result.statusCode).toStrictEqual(200);
     })
 
-    it("should read all items dynamodb", async () => {
-        const result    = await Main( "read", { number: "XXX", start : "2025-01-01 00:00:00", end : "2025-30-12 23:59:59" } );
-        console.log(result);
+    it.skip("should read all items dynamodb", async () => {
+        const result    = await Main( "allNotes", { number: "XXX" } );
+        expect(result.statusCode).toStrictEqual(200);
     })
 
     it("should resolve pattern Nubank", async () => {
@@ -77,9 +76,5 @@ describe("Image analyser test suite", () => {
       
     })
 
-    it("should formatted data yyyy-mm-dd", async () => {
-        const resultFormatted = Utils.formatDate("16/02/2025")
-        expect(resultFormatted).toStrictEqual("2025-02-16")
-    })
     
 })

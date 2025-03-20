@@ -1,17 +1,7 @@
-import Ajv from "ajv"
-const ajv = new Ajv() 
-const schema = {
-  type: "object",
-  properties: {
-    datetime  : { type: "string", nullable : false },
-    value     : { type: "string", nullable : false },
-    to        : { type: "string", nullable : false },
-    of        : { type: "string", nullable : false },
-    keypix    : { type: "string", nullable : false },
-    text      : { type: "string", nullable : false }
-  },
-  required: ["datetime", "value", "to", "of", "keypix", "text"],
-  
-}
+export const validate = (params) => {
+  const keys = [ "box_id", "box_data", "box_valor", "box_de", "box_para", "box_pix", "box_text" ]  
+  const valid = keys.filter( key => Reflect.has(params, key) === false || params[key] === null )
 
-export const validate = ajv.compile(schema)
+  return valid.length === 0 ? false : true
+} 
+

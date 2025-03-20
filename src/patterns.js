@@ -6,7 +6,7 @@ export default class Patterns {
         const foundTime = texts.match(/(?<data>[0-9]+\s[JANFEVMARABRMAIJUNJULAGOSETOUTNOVDEZ]+\s\d{4}).+(?<hours>\d{2}\:\d{2}\:\d{2})/);
         const foundValue= texts.match(/(?<valor>R\$\s?\d{1,5}(.\d{2,4})?(,\d{2})?)/);
         const of        = texts.match(/Origem\s(Nome)?\s?(?<de>.+\s?(Nome)?\s?.+)/)
-        const to        = texts.match(/Destino\s(Nome)?\s?(?<para>[A-Za-zãç\s]+)Instituição/);
+        const to        = texts.match(/Destino\s(Nome)?\s?(?<para>[A-Za-zãç\s]+)(Instituição|CPF)/);
         const keyPix    = texts.match(/Chave\sPix\s(?<keypix>.+)/)
 
         const getDate       = parse(`${foundTime.groups.data} - ${foundTime.groups.hours}`, "d MMM yyyy - HH:mm:ss", new Date(), { locale: ptBR })

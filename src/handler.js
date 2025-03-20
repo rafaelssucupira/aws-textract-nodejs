@@ -2,6 +2,7 @@ import { DetectDocumentTextCommand  } from "@aws-sdk/client-textract";
 import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 import Patterns from"./patterns.js"
 import { validate } from "./validator.js"
+// import {writeFile} from "node:fs/promises"
 
 export default class Handler {
     constructor( { s3Svc, dynamoSvc, textSvc } ) 
@@ -15,7 +16,9 @@ export default class Handler {
         {
             return dataValues.reduce( (acc, cur) => {
 
-                const field = cur.box_de === "Rafael Sucupira Marques" ? "DEBITO" : "CREDITO"
+                const field = cur.box_de
+                            .toLowerCase()
+                            .includes(process.env.ACCOUNT_OWNER) === true ? "DEBITO" : "CREDITO"
                 
                 const valor = parseFloat(cur.box_valor.replace("R$", "").replace(".", "").replace(",", "."));
                 acc[ field ] += valor;
@@ -55,27 +58,21 @@ export default class Handler {
 
         }    
 
-    async readItems( { number, start, end } ) 
+    async readItems( number ) 
         {
-
             const result = await this.dynamoSvc.send(new QueryCommand({
                 TableName : "boxzap",
                 ExpressionAttributeValues :  {
                     ":id": number,
-                    ":start": start,
-                    ":end": end 
                 },
                 ProjectionExpression : "box_valor,box_data,box_de,box_para",
-                KeyConditionExpression : "box_id = :id AND box_data BETWEEN :start AND :end",
+                KeyConditionExpression : "box_id = :id",
             }) )
 
-            // console.log("resultRead", JSON.stringify(result,null,2));
+            
             if(result.$metadata.httpStatusCode !== 200) throw "Não foi possivel salvar dados no dynamoDB."
-            return {
-                statusCode : result.$metadata.httpStatusCode ,
-                result : this.debitOrCredit(result.Items)
-            }
-
+            return this.debitOrCredit(result.Items)
+            
         }        
 
     async textDetect({ number, buffer } ) 
@@ -86,11 +83,12 @@ export default class Handler {
                     Bytes : buffer
                 }
             }))
-
+            
+            
             const rekoResult = this.normalizeResult(Blocks);
             const rekoResultFormatted = rekoResult.join("\n")
             const pattern = new Map([
-                [ "0800 887 0463",                                  (rekoResult) => Patterns.getNubank(rekoResult) ], 
+                [ "ouvidoria@nubank.com.br",                        (rekoResult) => Patterns.getNubank(rekoResult) ], 
                 [ "SISBB - SISTEMA DE INFORMACOES BANCO DO BRASIL", (rekoResult) => Patterns.getBB(rekoResult) ], 
                 [ "0800 688 4365",                                  (rekoResult) => Patterns.getMercadoPago(rekoResult) ],
                 [ "bradesco",                                       (rekoResult) => Patterns.getBradesco(rekoResult) ]
@@ -103,9 +101,10 @@ export default class Handler {
                     break;
                 }
             }
+
             const validOwner = `${resultPattern.of.toLowerCase()}@${resultPattern.to.toLowerCase()}`
-            if(validOwner.includes(process.env.NAME.toLowerCase()) === false) {
-                throw `Aceitamos pix somente de : ${process.env.NAME}`
+            if(validOwner.includes(process.env.ACCOUNT_OWNER) === false) {
+                throw `Aceitamos pix somente de : ${process.env.ACCOUNT_OWNER}`
             }
 
             await this.saveItems( { 
@@ -113,31 +112,32 @@ export default class Handler {
                 text : rekoResultFormatted,
                 ...resultPattern 
             } );
-         
+
+            const listResult = await this.readItems(number)
+            
             return {
                 statusCode : 200,
-                result : resultPattern
+                rekoResult : resultPattern,
+                listResult
             }
         }  
 
-    // params = buffer || paramsQueryRead
-    async main(opt = "read", params = "") 
+    async main(routine, params) 
         {    
             try 
                 {
-                    const opts = new Map([
-                        ["create",  (params) => this.textDetect(params) ],
-                        ["read",    (params) => this.readItems(params) ]
-                    ])
-                    const result = await opts.get(opt)(params)
-                    return result
+                    if(routine === "allNotes") {
+                        return this.readItems(params.number)
+                    } else {
+                        return this.textDetect(params)
+                    }
                 }
             catch(e) 
                 {
                     console.log(e);
                     return {
                         statusCode : 500,
-                        result : e.message || "Internal server error!"
+                        result : e?.message || "Internal server error!"
                     }
                 }
 

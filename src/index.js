@@ -1,53 +1,41 @@
+import TelegramBot from 'node-telegram-bot-api';
+import { readFile } from "node:fs/promises"
 import { Main } from "./factory.js"
-import { create } from '@wppconnect-team/wppconnect';
-import { writeFile } from "node:fs/promises"
 import Utils from "./utils.js"
 
-const client = await create({
-    catchLinkCode: (str) => console.log('Code: ' + str),
-})
+const bot = new TelegramBot( process.env.TOKEM, {polling: true} );
+const ids = [];
+const editMessage = async (chatID, txt) => {
+    const { message_id } = await bot.editMessageText( txt, { chat_id : chatID, message_id : ids[ ids.length - 1] } )
+    ids.push(message_id)
+}
 
-client.onMessage( async (msg) => 
-{
-    await writeFile("msgInterface.txt", JSON.stringify(msg, null, 2));
-
-    if(msg.type === "image" || (msg.type === "document" && msg.mimetype === "application/pdf") ) 
+bot.on("message", async (msg) => {
+ 
+    const { message_id } = await bot.sendMessage(msg.chat.id, "🔄 Processando..." )
+    ids.push(message_id)
+    if(msg.photo || (msg.document && msg.document.mime_type === "application/pdf") ) 
         {
-            const id     = msg.id;
-            const base64 = await client.downloadMedia(id)
-            const {statusCode, result} = await Main( "create", { buffer : Utils.normalizeBase64(base64), number : msg.from.replace("@c.us", "") } )
-            const resp = statusCode === 200 ? `- *Data/Hora :* ${result.datetime}\n- *Valor :* ${result.value}\n- *De :* ${result.of}\n- *Para :* ${result.to}\n- *PIX :* ${result.keypix}\n` 
-                                            : result
-            
-            await client.sendText(msg.from, resp);
-            return
+            await editMessage(msg.chat.id, "🔄 Salvando...")
+
+            const downFilePath  = await bot.downloadFile(Utils.getFileID(msg), `./datas/`)
+            const base64 = await readFile(downFilePath, { encoding : "base64" } )
+
+            await editMessage(msg.chat.id, "🔄 Lendo...")
+
+            const { statusCode, rekoResult, listResult } = await Main("insert",  { buffer : Utils.normalizeBase64(base64), number : msg.chat.id.toString() } )
+            await bot.deleteMessage(msg.chat.id, ids[ ids.length - 1] )
+            await bot.sendMessage(msg.chat.id, statusCode === 200 ? Utils.normalizeResult(rekoResult) : rekoResult )
+            await bot.sendMessage(msg.chat.id, Utils.normalizeTotal(listResult) )
+           
         }
-    else if(msg.type === "chat") 
+    else 
         {
-            const txtLowerCase = msg.body.toLocaleLowerCase();
-            if(txtLowerCase.includes("caixa") === true) 
-                {
-                    const atCount = (msg.body.match(/@/g) || []).length;
-                    const isDataValid = (msg.body.match(/(?<day>\d{2})\/?\-?(?<month>\d{2})\/?\-?(?<year>\d{4})/gm) || []).length
-                    if(atCount !== 2 && isDataValid !== 2) {
-                        await client.sendText(msg.from, "A mensagem deve conter exatamente dois '@'.\nAs Datas devem estar no formato dd/mm/yyyy\n\nEx : caixa@dd/mm/yyyy@dd/mm/yyyy");
-                        return;
-                    }
-                    
-                    const param = msg.body.split("@")
-                    const { statusCode, result } = await Main( "read", { start : Utils.formatDate(param[1]), end : Utils.formatDate(param[2]) } )
-
-
-                    const resp = statusCode === 200 ? `- * Crédito :* ${result.CREDITO}\n- *Débito :* ${result.DEBITO}\n- *Total :* ${(result.CREDITO-result.DEBITO)}` 
-                                                    : result
-                    await client.sendText(msg.from, resp);    
-
-                }
-
-            return
-
-        } 
-        
-        await client.sendText(msg.from, "Envie seu comprovante ou envie o comando *caixa@dd/mm/yyyy@dd/mm/yyyy* para obter relatório!");
-    
+            await editMessage(msg.chat.id, "🔄 Buscando...")
+            const listResult = await Main("allNotes", { number : msg.chat.id.toString() } )
+            
+            await bot.deleteMessage(msg.chat.id, ids[ ids.length - 1] )
+            await bot.sendMessage(msg.chat.id, Utils.normalizeTotal(listResult) )
+        }
 })
+s
