@@ -38,4 +38,3 @@ bot.on("message", async (msg) => {
             await bot.sendMessage(msg.chat.id, Utils.normalizeTotal(listResult) )
         }
 })
-s
