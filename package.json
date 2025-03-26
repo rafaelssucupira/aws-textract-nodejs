@@ -6,13 +6,15 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "test": "ACCOUNT_OWNER='rafael sucupira' npx vitest --testTimeout 50000"
+    "test": "ACCOUNT_OWNER='Rafael Sucupira' npx vitest --testTimeout 50000"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.741.0",
+    "@aws-sdk/client-ses": "^3.775.0",
+    "@aws-sdk/client-sqs": "^3.772.0",
     "@aws-sdk/client-textract": "^3.744.0",
     "@aws-sdk/lib-dynamodb": "^3.744.0",
     "date-fns": "^4.1.0",

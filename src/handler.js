@@ -2,23 +2,27 @@ import { DetectDocumentTextCommand  } from "@aws-sdk/client-textract";
 import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 import Patterns from"./patterns.js"
 import { validate } from "./validator.js"
-// import {writeFile} from "node:fs/promises"
+
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs"
 
 export default class Handler {
-    constructor( { s3Svc, dynamoSvc, textSvc } ) 
+    constructor( { dynamoSvc, textSvc, sqsSvc } ) 
         {
-            this.s3Svc      = s3Svc
             this.dynamoSvc  = dynamoSvc
             this.textSvc  = textSvc
+            this.sqsSvc = sqsSvc
+        }
+    setLower(txt) 
+        {
+            return txt.toLowerCase()
         }
 
     debitOrCredit(dataValues)  
         {
             return dataValues.reduce( (acc, cur) => {
 
-                const field = cur.box_de
-                            .toLowerCase()
-                            .includes(process.env.ACCOUNT_OWNER) === true ? "DEBITO" : "CREDITO"
+                const field = this.setLower(cur.box_de)
+                                  .includes(this.setLower(process.env.ACCOUNT_OWNER)) === true ? "DEBITO" : "CREDITO"
                 
                 const valor = parseFloat(cur.box_valor.replace("R$", "").replace(".", "").replace(",", "."));
                 acc[ field ] += valor;
@@ -58,7 +62,7 @@ export default class Handler {
 
         }    
 
-    async readItems( number ) 
+    async read( number ) 
         {
             const result = await this.dynamoSvc.send(new QueryCommand({
                 TableName : "boxzap",
@@ -75,7 +79,7 @@ export default class Handler {
             
         }        
 
-    async textDetect({ number, buffer } ) 
+    async detect({ number, buffer } ) 
         {
                 
             const { Blocks }  = await this.textSvc.send(new DetectDocumentTextCommand({
@@ -83,7 +87,6 @@ export default class Handler {
                     Bytes : buffer
                 }
             }))
-            
             
             const rekoResult = this.normalizeResult(Blocks);
             const rekoResultFormatted = rekoResult.join("\n")
@@ -95,49 +98,74 @@ export default class Handler {
             ]);
 
             let resultPattern ;
-            for(const data of pattern) {
-                if(rekoResultFormatted.includes( data[0] ) ) {
-                    resultPattern = pattern.get(data[0]) (rekoResultFormatted);
-                    break;
+            for(const data of pattern) 
+                {
+                    if(rekoResultFormatted.includes( data[0] ) ) {
+                        try{
+                            resultPattern = pattern.get(data[0]) (rekoResultFormatted);
+                            break;
+                        }
+                        catch(e) {
+                            return Promise.reject({ 
+                                sqs : true,
+                                msg : "❌ Não foi possivel identificar o padrão.",
+                                pattern : rekoResultFormatted
+                            })
+                        }
+                    }
                 }
+
+            const validOwner = `${this.setLower(resultPattern.of)}@${this.setLower(resultPattern.to)}`
+            if(validOwner.includes(this.setLower(process.env.ACCOUNT_OWNER)) === false) {
+                return Promise.reject({ 
+                    sqs : false,
+                    msg : `❌ Aceitamos pix somente de : ${process.env.ACCOUNT_OWNER}`
+                })
             }
 
-            const validOwner = `${resultPattern.of.toLowerCase()}@${resultPattern.to.toLowerCase()}`
-            if(validOwner.includes(process.env.ACCOUNT_OWNER) === false) {
-                throw `Aceitamos pix somente de : ${process.env.ACCOUNT_OWNER}`
-            }
-
-            await this.saveItems( { 
+            await this.saveItems({ 
                 id : number, 
                 text : rekoResultFormatted,
                 ...resultPattern 
-            } );
+            });
 
-            const listResult = await this.readItems(number)
-            
             return {
                 statusCode : 200,
                 rekoResult : resultPattern,
-                listResult
+                listResult : await this.read(number)
             }
         }  
 
-    async main(routine, params) 
+    async main(router, params) 
         {    
             try 
                 {
-                    if(routine === "allNotes") {
-                        return this.readItems(params.number)
-                    } else {
-                        return this.textDetect(params)
-                    }
+
+                    const routine = new Map([
+                        ["allNotes",    (params) => this.read(params.number) ],
+                        ["insert",      (params) => this.detect(params) ],
+                    ])
+
+                    const fn = routine.get(router)
+                    return await fn(params)
+
                 }
-            catch(e) 
+            catch(err) 
                 {
-                    console.log(e);
+                    
+                    if(err.sqs === true) 
+                        {
+                            const command   = new SendMessageCommand({
+                                QueueUrl : "https://sqs.us-east-1.amazonaws.com/396913714523/task-queue",
+                                MessageBody : JSON.stringify(err)
+                            });
+                            const result    = await this.sqsSvc.send(command)
+                        }
+
                     return {
                         statusCode : 500,
-                        result : e?.message || "Internal server error!"
+                        rekoResult : err.msg || "Internal server error!",
+                        listResult : await this.read(params.number)
                     }
                 }
 

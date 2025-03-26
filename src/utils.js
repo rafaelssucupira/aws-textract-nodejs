@@ -34,8 +34,4 @@ export default class Utils {
                     '\n\n💰 Total : R$ '+formatter.format(result.CREDITO - result.DEBITO)
         }
 
-    // formatCurrency(num) {
-    //     const formatter = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 } );
-    //     return formatter.format(num)
-    // }    
 }

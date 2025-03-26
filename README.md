@@ -14,9 +14,16 @@ Desafios de implementação:
 O que aprendi:
 
 - Desenvolvi habilidades em análise de dados e processamento de imagens para extrair informações dos comprovantes PIX.
-- Desenvolvi habilidades com o banco de dados NoSQL DynamoDB.
-- Aprofundei meu conhecimento em AWS, superando desafios com o sistema de permissões e aprendendo a utilizar o Serverless Framework de forma eficaz.
+- Desenvolvi habilidades com o banco de dados NoSQL `DynamoDB`.
+- Aprofundei meu conhecimento em AWS, superando desafios com o sistema de permissões e aprendendo a utilizar o `Serverless Framework` de forma eficaz.
 - Desenvolvi uma aplicação serverless escalável e segura, pronta para ser utilizada em um ambiente de produção.
+
+Tecnologias Utilizadas : 
+
+- AWS DynamoDB
+- AWS Ses
+- AWS Sqs
+- AWS TextExtract
 
 # Guia
 - [Features](#Features)
@@ -43,15 +50,8 @@ O que aprendi:
 
 ### Passo 5: Retorno de Mensagem de Sucesso
 
-- Após o armazenamento dos dados, o bot retorna uma mensagem de sucesso para o usuário.
+- Após o armazenamento dos dados, o bot retorna uma mensagem de sucesso para o usuário, junto com os totais de caixa do dia.
 - Isso confirma que o comprovante PIX foi processado com sucesso e que os dados foram armazenados corretamente.
-
-### Passo 6: Relatório
-
-- Ao final do dia você pode enviar um comando para geração de um relatório com base no periodo que voce quiser. Por exemplo : 
-```
-caixa@yyyy@dd/mm/yyyy
-```
 
 # Instruções para execução 
 - Faça download do projeto e instale as dependencias
@@ -59,9 +59,10 @@ caixa@yyyy@dd/mm/yyyy
 git clone https://github.com/rafaelssucupira/aws-textract-nodejs.git
 npm install
 ```
-- Crie um arquivo `.env` na raiz do projeto e defina a variável de ambiente `NAME` com o nome que deve constar no comprovante PIX. Por exemplo:
+- Crie um arquivo `.env` na raiz do projeto e defina a variável de ambiente `NAME` com o nome que deve constar no comprovante PIX, tambem defina o tokem do bot Telegram. Por exemplo:
 ```
-NAME=SeuNomeAqui
+ACCOUNT_OWNER=SeuNomeAqui
+TOKEM=TOKEM_TELEGRAM
 ```
 - Configure o aws-cli, para posteriormente o Serveless Framework logar na sua conta aws
 ```

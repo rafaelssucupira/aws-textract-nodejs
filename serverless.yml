@@ -16,8 +16,39 @@ provider:
           Action:
             - dynamodb:PutItem
           Resource: "*"   
+        - Effect: Allow
+          Action:
+            - ses:sendEmail
+          Resource: "*"  
+          
+package:
+  exclude:
+    - node_modules
+    - tokens
+    - git/**
+    - .gitignore
+    - .vscode/**    
+    - __tests__/**
+    - "*.log"
+    - "*.md"
+    - "*.sh"
+    - coverage/**
+    
+functions:
+  sqsResolve:
+    handler : src/sqs.resolve
+    events : 
+      - sqs : 
+          arn: arn:aws:sqs:us-east-1:396913714523:task-queue
+
+
 resources:
   Resources:
+    TaskQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: task-queue
+
     boxzapTable: 
       Type: AWS::DynamoDB::Table
       Properties : 

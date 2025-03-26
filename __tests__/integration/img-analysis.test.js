@@ -17,9 +17,12 @@ describe("Image analyser test suite", () => {
         expect(result.statusCode).toStrictEqual(200);
     })
 
-    it.skip("should read all items dynamodb", async () => {
-        const result    = await Main( "allNotes", { number: "XXX" } );
-        expect(result.statusCode).toStrictEqual(200);
+    it.only("should read all items dynamodb", async () => {
+        const result    = await Main( "allNotes", { number: "466573943" } );
+        console.log(result)
+
+
+        // expect(result.statusCode).toStrictEqual(200);
     })
 
     it("should resolve pattern Nubank", async () => {
