@@ -1,7 +1,7 @@
 # "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: rafaelssucupira
 # "service" is the name of this project. This will also be added to your AWS resource names.
-service: image-analysis-bot
+service: pixbot
 
 provider:
   name: aws
@@ -15,33 +15,32 @@ provider:
         - Effect: Allow
           Action:
             - dynamodb:PutItem
-          Resource: "*"   
+          Resource: "*" 
         - Effect: Allow
           Action:
-            - ses:sendEmail
-          Resource: "*"  
-          
+            - ses:SendRawEmail
+          Resource: "*"        
+        
 package:
   exclude:
+    - __tests__/**
+    - coverage/**
+    - .vscode/**    
+    - git/**
     - node_modules
     - tokens
-    - git/**
     - .gitignore
-    - .vscode/**    
-    - __tests__/**
     - "*.log"
     - "*.md"
     - "*.sh"
-    - coverage/**
     
 functions:
   sqsResolve:
-    handler : src/sqs.resolve
-    events : 
-      - sqs : 
+    handler: src/sqs.send
+    events: 
+      - sqs: 
           arn: arn:aws:sqs:us-east-1:396913714523:task-queue
-
-
+  
 resources:
   Resources:
     TaskQueue:
@@ -52,7 +51,7 @@ resources:
     boxzapTable: 
       Type: AWS::DynamoDB::Table
       Properties : 
-        TableName : ${self:provider.environment.TableName}
+        TableName : boxzap
         AttributeDefinitions : 
           - AttributeName: box_id
             AttributeType: S
@@ -66,15 +65,15 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1   
-        GlobalSecondaryIndexes:
-          - IndexName: box_data-index
-            KeySchema:
-              - AttributeName: box_data
-                KeyType: HASH
-            Projection:
-              ProjectionType: ALL
-            ProvisionedThroughput:
-              ReadCapacityUnits: 1
-              WriteCapacityUnits: 1 
+        # GlobalSecondaryIndexes:
+        #   - IndexName: box_data-index
+        #     KeySchema:
+        #       - AttributeName: box_data
+        #         KeyType: HASH
+        #     Projection:
+        #       ProjectionType: ALL
+        #     ProvisionedThroughput:
+        #       ReadCapacityUnits: 1
+        #       WriteCapacityUnits: 1 
 
 

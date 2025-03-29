@@ -3,7 +3,7 @@ import { PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 import Patterns from"./patterns.js"
 import { validate } from "./validator.js"
 
-import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs"
+import { SendMessageCommand } from "@aws-sdk/client-sqs"
 
 export default class Handler {
     constructor( { dynamoSvc, textSvc, sqsSvc } ) 
@@ -34,7 +34,7 @@ export default class Handler {
     normalizeResult(Blocks) 
         {
             return Blocks
-                    .filter( data => data.BlockType === "LINE" && data.Confidence > 90)
+                    .filter( data => data.BlockType === "LINE" && data.Confidence > process.env.ACCURACY)
                     .map( data => data.Text )
         }    
 
@@ -109,7 +109,8 @@ export default class Handler {
                             return Promise.reject({ 
                                 sqs : true,
                                 msg : "❌ Não foi possivel identificar o padrão.",
-                                pattern : rekoResultFormatted
+                                pattern : rekoResult,
+                                respAWS : Blocks
                             })
                         }
                     }

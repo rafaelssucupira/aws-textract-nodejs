@@ -1,4 +1,4 @@
-# image-analysis
+# PIXBOT
 ### Projeto de Análise de Comprovantes PIX para Automatização de Caixa
 
 Problema :

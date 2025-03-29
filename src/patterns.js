@@ -67,10 +67,10 @@ export default class Patterns {
     static getMercadoPago(texts) 
     {
         
-        const foundDate     = texts.match(/(?<data>\d{1,2}\sde\s[A-Za-z]+\sde\s\d{4})/);
+        const foundDate     = texts.match(/(?<data>\d{1,2}\sde\s[A-Za-zç]+\sde\s\d{4})/);
         const foundHour     = texts.match(/(?<hours>\d{2}:\d{2}:\d{2})/);
         const foundValue    = texts.match(/(?<valor>R\$\s?\d{1,5}(.\d{2,4})?(,\d{2})?)/);
-        const of            = texts.match(/De\s(?<de>[A-Za-z\s]+)\s(CPF|CNPJ)/);
+        const of            = texts.match(/De\s(?<de>[A-Za-zç\s]+)\s(CPF|CNPJ)/);
         const to            = texts.match(/Para\s(?<para>.+)\s/);
 
         const getDate       = parse(`${foundDate.groups.data} - ${foundHour.groups.hours}`, "d 'de' MMMM 'de' yyyy - HH:mm:ss", new Date(), { locale: ptBR })
